@@ -1,237 +1,329 @@
--- 🔥 Simple Roblox UI Library v1.0 (с ключом "123", без loading)
--- Готов к GitHub: сохрани как SimpleLib.lua
+-- 🔥 CustomMyLib v4.0 — красивая, рабочая, draggable + toggle K + key system фикс
+-- Готов к GitHub: сохрани как CustomMyLib.lua
 
-local SimpleLib = {}
+local CustomMyLib = {}
 
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 
-local KEY = "123"  -- Ключ доступа
-
-function SimpleLib:CreateWindow(config)
+function CustomMyLib:CreateWindow(config)
     config = config or {}
     local window = {}
-    window.Title = config.Title or "Simple Hub"
+    window.Title = config.Title or "My Hub"
+    window.SubTitle = config.SubTitle or ""
+    window.Size = config.Size or UDim2.fromOffset(600, 500)
+    window.ToggleKey = config.ToggleKey or Enum.KeyCode.K
+    window.Key = config.Key or "123"  -- Ключ по умолчанию
     window.Tabs = {}
     window.CurrentTab = nil
+    window.Visible = false  -- Скрыто до ввода ключа
 
-    -- Key Input
-    local keyGui = Instance.new("ScreenGui")
-    keyGui.Name = "KeySystem"
-    keyGui.Parent = player:WaitForChild("PlayerGui")
+    -- ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "CustomMyLib_GUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = player:WaitForChild("PlayerGui")
 
+    -- Key System (draggable + close + toggle K работает)
     local keyFrame = Instance.new("Frame")
-    keyFrame.Size = UDim2.new(0, 300, 0, 150)
-    keyFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
-    keyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    keyFrame.Parent = keyGui
+    keyFrame.Size = UDim2.new(0, 350, 0, 200)
+    keyFrame.Position = UDim2.new(0.5, -175, 0.5, -100)
+    keyFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+    keyFrame.BorderSizePixel = 0
+    keyFrame.Parent = screenGui
 
     local keyCorner = Instance.new("UICorner")
-    keyCorner.CornerRadius = UDim.new(0, 12)
+    keyCorner.CornerRadius = UDim.new(0, 16)
     keyCorner.Parent = keyFrame
 
+    local keyStroke = Instance.new("UIStroke")
+    keyStroke.Color = Color3.fromRGB(80, 120, 255)
+    keyStroke.Thickness = 2
+    keyStroke.Parent = keyFrame
+
+    local keyHeader = Instance.new("Frame")
+    keyHeader.Size = UDim2.new(1, 0, 0, 50)
+    keyHeader.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
+    keyHeader.Parent = keyFrame
+
+    local keyHeaderCorner = Instance.new("UICorner")
+    keyHeaderCorner.CornerRadius = UDim.new(0, 16)
+    keyHeaderCorner.Parent = keyHeader
+
     local keyTitle = Instance.new("TextLabel")
-    keyTitle.Size = UDim2.new(1, 0, 0, 50)
+    keyTitle.Size = UDim2.new(1, -60, 1, 0)
+    keyTitle.Position = UDim2.new(0, 20, 0, 0)
     keyTitle.BackgroundTransparency = 1
     keyTitle.Text = "Введите ключ"
-    keyTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    keyTitle.TextColor3 = Color3.fromRGB(100, 200, 255)
     keyTitle.Font = Enum.Font.GothamBold
     keyTitle.TextSize = 24
-    keyTitle.Parent = keyFrame
+    keyTitle.TextXAlignment = Enum.TextXAlignment.Left
+    keyTitle.Parent = keyHeader
+
+    local keyClose = Instance.new("TextButton")
+    keyClose.Size = UDim2.new(0, 40, 0, 40)
+    keyClose.Position = UDim2.new(1, -50, 0, 5)
+    keyClose.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+    keyClose.Text = "✕"
+    keyClose.TextColor3 = Color3.new(1,1,1)
+    keyClose.Font = Enum.Font.GothamBold
+    keyClose.TextSize = 24
+    keyClose.Parent = keyHeader
+
+    local keyCloseC = Instance.new("UICorner")
+    keyCloseC.CornerRadius = UDim.new(0, 10)
+    keyCloseC.Parent = keyClose
+
+    keyClose.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+    end)
 
     local keyBox = Instance.new("TextBox")
-    keyBox.Size = UDim2.new(0.8, 0, 0, 40)
+    keyBox.Size = UDim2.new(0.8, 0, 0, 50)
     keyBox.Position = UDim2.new(0.1, 0, 0.4, 0)
-    keyBox.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    keyBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     keyBox.Text = ""
-    keyBox.PlaceholderText = "Ключ здесь..."
-    keyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    keyBox.PlaceholderText = "Ключ..."
+    keyBox.TextColor3 = Color3.new(1,1,1)
     keyBox.Font = Enum.Font.Gotham
-    keyBox.TextSize = 18
+    keyBox.TextSize = 20
     keyBox.Parent = keyFrame
 
+    local keyBoxC = Instance.new("UICorner")
+    keyBoxC.CornerRadius = UDim.new(0, 10)
+    keyBoxC.Parent = keyBox
+
     local keyBtn = Instance.new("TextButton")
-    keyBtn.Size = UDim2.new(0.8, 0, 0, 40)
+    keyBtn.Size = UDim2.new(0.8, 0, 0, 50)
     keyBtn.Position = UDim2.new(0.1, 0, 0.7, 0)
     keyBtn.BackgroundColor3 = Color3.fromRGB(80, 150, 255)
-    keyBtn.Text = "Проверить"
+    keyBtn.Text = "Войти"
     keyBtn.TextColor3 = Color3.new(1,1,1)
     keyBtn.Font = Enum.Font.GothamBold
-    keyBtn.TextSize = 20
+    keyBtn.TextSize = 22
     keyBtn.Parent = keyFrame
 
     local keyBtnC = Instance.new("UICorner")
     keyBtnC.CornerRadius = UDim.new(0, 10)
     keyBtnC.Parent = keyBtn
 
-    local mainGui = nil
+    -- Main Frame (скрыто до ключа)
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = window.Size
+    mainFrame.Position = UDim2.new(0.5, -window.Size.X.Offset/2, 0.5, -window.Size.Y.Offset/2)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 35)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Visible = false
+    mainFrame.Parent = screenGui
 
-    keyBtn.MouseButton1Click:Connect(function()
-        if keyBox.Text == KEY then
-            keyGui:Destroy()
-            -- Создаём основной хаб
-            mainGui = Instance.new("ScreenGui")
-            mainGui.Name = "SimpleHub"
-            mainGui.Parent = player:WaitForChild("PlayerGui")
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 16)
+    mainCorner.Parent = mainFrame
 
-            local mainFrame = Instance.new("Frame")
-            mainFrame.Size = UDim2.new(0, 500, 0, 400)
-            mainFrame.Position = UDim2.new(0.5, -250, 0.5, -200)
-            mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-            mainFrame.Parent = mainGui
+    local mainStroke = Instance.new("UIStroke")
+    mainStroke.Color = Color3.fromRGB(80, 120, 255)
+    mainStroke.Thickness = 2
+    mainStroke.Transparency = 0.4
+    mainStroke.Parent = mainFrame
 
-            local mfC = Instance.new("UICorner")
-            mfC.CornerRadius = UDim.new(0, 12)
-            mfC.Parent = mainFrame
+    local mainGradient = Instance.new("UIGradient")
+    mainGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 70)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(18, 18, 35))
+    }
+    mainGradient.Parent = mainFrame
 
-            local title = Instance.new("TextLabel")
-            title.Size = UDim2.new(1, 0, 0, 50)
-            title.BackgroundTransparency = 1
-            title.Text = window.Title
-            title.TextColor3 = Color3.fromRGB(100, 200, 255)
-            title.Font = Enum.Font.GothamBold
-            title.TextSize = 28
-            title.Parent = mainFrame
+    -- Header main
+    local header = Instance.new("Frame")
+    header.Size = UDim2.new(1, 0, 0, 70)
+    header.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+    header.Parent = mainFrame
 
-            -- Tab system
-            local tabContainer = Instance.new("Frame")
-            tabContainer.Size = UDim2.new(0, 150, 1, -50)
-            tabContainer.BackgroundTransparency = 1
-            tabContainer.Parent = mainFrame
+    local headerCorner = Instance.new("UICorner")
+    headerCorner.CornerRadius = UDim.new(0, 16)
+    headerCorner.Parent = header
 
-            local tabList = Instance.new("UIListLayout")
-            tabList.Padding = UDim.new(0, 5)
-            tabList.Parent = tabContainer
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, -100, 0, 40)
+    titleLabel.Position = UDim2.new(0, 20, 0, 10)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = window.Title
+    titleLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 28
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = header
 
-            local content = Instance.new("Frame")
-            content.Size = UDim2.new(1, -150, 1, -50)
-            content.Position = UDim2.new(0, 150, 0, 50)
-            content.BackgroundTransparency = 1
-            content.Parent = mainFrame
+    local closeMain = Instance.new("TextButton")
+    closeMain.Size = UDim2.new(0, 50, 0, 50)
+    closeMain.Position = UDim2.new(1, -60, 0, 10)
+    closeMain.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+    closeMain.Text = "✕"
+    closeMain.TextColor3 = Color3.new(1,1,1)
+    closeMain.Font = Enum.Font.GothamBold
+    closeMain.TextSize = 30
+    closeMain.Parent = header
 
-            function window:AddTab(tabConfig)
-                local tab = {}
-                tab.Name = tabConfig.Name or "Tab"
-                tab.Elements = {}
+    local closeMainC = Instance.new("UICorner")
+    closeMainC.CornerRadius = UDim.new(0, 12)
+    closeMainC.Parent = closeMain
 
-                local tabBtn = Instance.new("TextButton")
-                tabBtn.Size = UDim2.new(1, -20, 0, 40)
-                tabBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-                tabBtn.Text = tab.Name
-                tabBtn.TextColor3 = Color3.new(1,1,1)
-                tabBtn.Font = Enum.Font.GothamBold
-                tabBtn.Parent = tabContainer
+    closeMain.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+    end)
 
-                local tbC = Instance.new("UICorner")
-                tbC.Parent = tabBtn
+    -- Tab Container + Content
+    local tabContainer = Instance.new("Frame")
+    tabContainer.Size = UDim2.new(0, 160, 1, -70)
+    tabContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 45)
+    tabContainer.Parent = mainFrame
 
-                tabBtn.MouseButton1Click:Connect(function()
-                    for _, t in pairs(window.Tabs) do
-                        t.Btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-                    end
-                    tabBtn.BackgroundColor3 = Color3.fromRGB(80, 120, 255)
-                    content:ClearAllChildren()
-                    for _, el in pairs(tab.Elements) do
-                        el.Instance.Parent = content
-                    end
-                end)
+    local tabList = Instance.new("UIListLayout")
+    tabList.Padding = UDim.new(0, 10)
+    tabList.Parent = tabContainer
 
-                tab.Btn = tabBtn
-                table.insert(window.Tabs, tab)
-                if #window.Tabs == 1 then tabBtn.MouseButton1Click:Fire() end
+    local content = Instance.new("ScrollingFrame")
+    content.Size = UDim2.new(1, -160, 1, -70)
+    content.Position = UDim2.new(0, 160, 0, 70)
+    content.BackgroundTransparency = 1
+    content.ScrollBarThickness = 8
+    content.Parent = mainFrame
 
-                function tab:AddButton(btnConfig)
-                    local btn = {}
-                    btn.Name = btnConfig.Name or "Button"
-                    btn.Callback = btnConfig.Callback or function() end
+    local contentList = Instance.new("UIListLayout")
+    contentList.Padding = UDim.new(0, 15)
+    contentList.Parent = content
 
-                    local el = Instance.new("TextButton")
-                    el.Size = UDim2.new(1, -20, 0, 50)
-                    el.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
-                    el.Text = btn.Name
-                    el.TextColor3 = Color3.new(1,1,1)
-                    el.Font = Enum.Font.GothamBold
-                    el.TextSize = 18
-                    el.Visible = false
-
-                    local ec = Instance.new("UICorner")
-                    ec.Parent = el
-
-                    el.MouseButton1Click:Connect(btn.Callback)
-
-                    btn.Instance = el
-                    table.insert(tab.Elements, btn)
-                    return btn
-                end
-
-                function tab:AddToggle(togConfig)
-                    local tog = {}
-                    tog.Name = togConfig.Name or "Toggle"
-                    tog.Default = togConfig.Default or false
-                    tog.Callback = togConfig.Callback or function() end
-                    tog.Value = tog.Default
-
-                    local el = Instance.new("Frame")
-                    el.Size = UDim2.new(1, -20, 0, 50)
-                    el.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
-                    el.Visible = false
-
-                    local label = Instance.new("TextLabel")
-                    label.Size = UDim2.new(1, -80, 1, 0)
-                    label.BackgroundTransparency = 1
-                    label.Text = tog.Name
-                    label.TextColor3 = Color3.new(1,1,1)
-                    label.Font = Enum.Font.GothamBold
-                    label.TextSize = 18
-                    label.TextXAlignment = Enum.TextXAlignment.Left
-                    label.Position = UDim2.new(0, 20, 0, 0)
-                    label.Parent = el
-
-                    local toggle = Instance.new("TextButton")
-                    toggle.Size = UDim2.new(0, 60, 0, 30)
-                    toggle.Position = UDim2.new(1, -80, 0.5, -15)
-                    toggle.BackgroundColor3 = tog.Value and Color3.fromRGB(80, 200, 80) or Color3.fromRGB(80, 80, 80)
-                    toggle.Text = ""
-                    toggle.Parent = el
-
-                    local tc = Instance.new("UICorner")
-                    tc.CornerRadius = UDim.new(0, 15)
-                    tc.Parent = toggle
-
-                    local ind = Instance.new("Frame")
-                    ind.Size = UDim2.new(0, 24, 0, 24)
-                    ind.Position = tog.Value and UDim2.new(1, -30, 0.5, -12) or UDim2.new(0, 6, 0.5, -12)
-                    ind.BackgroundColor3 = Color3.new(1,1,1)
-                    ind.Parent = toggle
-
-                    local ic = Instance.new("UICorner")
-                    ic.CornerRadius = UDim.new(0, 12)
-                    ic.Parent = ind
-
-                    toggle.MouseButton1Click:Connect(function()
-                        tog.Value = not tog.Value
-                        TweenService:Create(toggle, TweenInfo.new(0.2), {BackgroundColor3 = tog.Value and Color3.fromRGB(80, 200, 80) or Color3.fromRGB(80, 80, 80)}):Play()
-                        TweenService:Create(ind, TweenInfo.new(0.3), {Position = tog.Value and UDim2.new(1, -30, 0.5, -12) or UDim2.new(0, 6, 0.5, -12)}):Play()
-                        tog.Callback(tog.Value)
-                    end)
-
-                    tog.Instance = el
-                    table.insert(tab.Elements, tog)
-                    return tog
-                end
-
-                return tab
+    -- Draggable for keyFrame and mainFrame
+    local function makeDraggable(frame)
+        local dragging = false
+        local dragInput, dragStart, startPos
+        frame.InputBegan:Connect(function(i)
+            if i.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = true
+                dragStart = i.Position
+                startPos = frame.Position
             end
+        end)
+        frame.InputChanged:Connect(function(i)
+            if i.UserInputType == Enum.UserInputType.MouseMovement then dragInput = i end
+        end)
+        UserInputService.InputChanged:Connect(function(i)
+            if dragInput and dragging then
+                local delta = i.Position - dragStart
+                frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            end
+        end)
+        frame.InputEnded:Connect(function() dragging = false end)
+    end
 
-            return window
-        else
-            keyBox.Text = "Неверный ключ!"
+    makeDraggable(keyHeader)
+    makeDraggable(header)
+
+    -- Toggle UI on K (для mainFrame)
+    UserInputService.InputBegan:Connect(function(i, gp)
+        if gp then return end
+        if i.KeyCode == window.ToggleKey then
+            window.Visible = not window.Visible
+            mainFrame.Visible = window.Visible
         end
     end)
+
+    -- Key check
+    keyBtn.MouseButton1Click:Connect(function()
+        if keyBox.Text == window.Key then
+            keyFrame:Destroy()
+            mainFrame.Visible = true
+            window.Visible = true
+        else
+            keyBox.Text = ""
+            keyBox.PlaceholderText = "Неверный ключ!"
+        end
+    end)
+
+    -- AddTab
+    function window:AddTab(tabConfig)
+        local tab = {}
+        tab.Title = tabConfig.Title or "Tab"
+        tab.Elements = {}
+
+        local tabBtn = Instance.new("TextButton")
+        tabBtn.Size = UDim2.new(1, -20, 0, 50)
+        tabBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
+        tabBtn.Text = tab.Title
+        tabBtn.TextColor3 = Color3.new(1,1,1)
+        tabBtn.Font = Enum.Font.GothamBold
+        tabBtn.TextSize = 18
+        tabBtn.Parent = tabContainer
+
+        local tbC = Instance.new("UICorner")
+        tbC.CornerRadius = UDim.new(0, 10)
+        tbC.Parent = tabBtn
+
+        tabBtn.MouseButton1Click:Connect(function()
+            for _, t in pairs(window.Tabs) do
+                TweenService:Create(t.Btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 70)}):Play()
+            end
+            TweenService:Create(tabBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(80, 120, 255)}):Play()
+            content:ClearAllChildren()
+            contentList.Parent = content
+            for _, el in pairs(tab.Elements) do
+                el.Instance.Parent = content
+            end
+        end)
+
+        tab.Btn = tabBtn
+        table.insert(window.Tabs, tab)
+
+        if #window.Tabs == 1 then tabBtn.MouseButton1Click:Fire() end
+
+        function tab:AddButton(btnConfig)
+            local btn = {}
+            btn.Title = btnConfig.Title or "Button"
+            btn.Callback = btnConfig.Callback or function() end
+
+            local el = Instance.new("TextButton")
+            el.Size = UDim2.new(1, -40, 0, 60)
+            el.BackgroundColor3 = Color3.fromRGB(55, 55, 90)
+            el.Text = btn.Title
+            el.TextColor3 = Color3.new(1,1,1)
+            el.Font = Enum.Font.GothamBold
+            el.TextSize = 20
+            el.Visible = false
+
+            local ec = Instance.new("UICorner")
+            ec.CornerRadius = UDim.new(0, 12)
+            ec.Parent = el
+
+            local eg = Instance.new("UIGradient")
+            eg.Color = ColorSequence.new{
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(80, 80, 140)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 60, 100))
+            }
+            eg.Parent = el
+
+            el.MouseEnter:Connect(function()
+                TweenService:Create(el, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(80, 80, 160)}):Play()
+            end)
+            el.MouseLeave:Connect(function()
+                TweenService:Create(el, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(55, 55, 90)}):Play()
+            end)
+
+            el.MouseButton1Click:Connect(btn.Callback)
+
+            btn.Instance = el
+            table.insert(tab.Elements, btn)
+            return btn
+        end
+
+        -- Добавь AddToggle, AddSlider по аналогии (из предыдущих версий)
+
+        return tab
+    end
 
     return window
 end
 
-return SimpleLib
+return CustomMyLib
