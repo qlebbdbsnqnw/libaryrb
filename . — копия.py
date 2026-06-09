@@ -1,247 +1,130 @@
-from telegram import (
-    Update,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup
-)
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    MessageHandler,
-    CallbackQueryHandler,
-    ConversationHandler,
-    ContextTypes,
-    filters
-)
+-- lib/main.lua
+local DiscordUI = {}
 
-TOKEN = "PASTE_BOT_TOKEN"
-ADMIN_ID = 0000000000  # <-- вставь свой ID
+function DiscordUI:CreateWindow(config)
+    local player = game.Players.LocalPlayer
+    local playerGui = player:WaitForChild("PlayerGui")
+    
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = config.Name or "DiscordUI"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.Parent = playerGui
 
-(
-    MENU,
-    AGREEMENT,
-    NICK,
-    TG,
-    ROLE,
-    EXPERIENCE,
-    TIME,
-    REASON,
-    SUPPORT,
-    DECLINE_REASON
-) = range(10)
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Size = config.Size or UDim2.fromOffset(480, 400)
+    MainFrame.Position = UDim2.fromScale(0.5, 0.5)
+    MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(30, 31, 34)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Active = true
+    MainFrame.Draggable = true
+    MainFrame.Parent = ScreenGui
 
-# ================== START MENU ==================
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("📨 Подать заявку", callback_data="apply")],
-        [InlineKeyboardButton("📜 Соглашение", callback_data="agreement")],
-        [InlineKeyboardButton("🛠 Поддержка", callback_data="support")]
-    ]
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 12)
+    Corner.Parent = MainFrame
 
-    await update.message.reply_text(
-        "👋 Добро пожаловать в бота заявок клана!\n\n"
-        "Выберите нужное действие:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-    return MENU
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Color = Color3.fromRGB(60, 63, 69)
+    Stroke.Thickness = 1.5
+    Stroke.Transparency = 0.4
+    Stroke.Parent = MainFrame
 
-# ================== AGREEMENT ==================
-AGREEMENT_TEXT = (
-    "📜 *Соглашение*\n\n"
-    "Вы будете согласны после отправленной заявки:\n\n"
-    "1. Ваш Username будет отправлен создателю на рассмотрение\n"
-    "2. Ваши данные (Username / Ник в Roblox / Звание) будут добавлены на сайте\n"
-    "3. Мы не несем ответственности за Username, добавленные на сайте\n"
-    "4. Вы будете состоять в клане, если вас примут\n"
-    "5. Нужно строго выполнять приказы Командиров или Создателя\n"
-    "6. Если вас изгоняют из клана — ответственность не несём\n"
-    "7. Запрещено спамить заявками в боте\n"
-    "8. Нарушение правил: 3 ошибки — мут 30 минут, повтор — изгнание\n"
-    "9. Поддельные Username / Nickname запрещены и караются блокировкой\n\n"
-    "_Если вы не согласны — вас просто не примут._"
-)
+    -- Title Bar
+    local TitleBar = Instance.new("Frame")
+    TitleBar.Size = UDim2.new(1, 0, 0, 42)
+    TitleBar.BackgroundColor3 = Color3.fromRGB(26, 27, 30)
+    TitleBar.BorderSizePixel = 0
+    TitleBar.Parent = MainFrame
 
-async def agreement(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
+    local TitleCorner = Instance.new("UICorner")
+    TitleCorner.CornerRadius = UDim.new(0, 12)
+    TitleCorner.Parent = TitleBar
 
-    keyboard = [[InlineKeyboardButton("✅ Согласиться", callback_data="agree")]]
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(1, -90, 1, 0)
+    Title.BackgroundTransparency = 1
+    Title.Text = config.Title or "Android Control"
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.TextSize = 17
+    Title.Font = Enum.Font.GothamBold
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.Position = UDim2.fromOffset(16, 0)
+    Title.Parent = TitleBar
 
-    await query.message.reply_text(
-        AGREEMENT_TEXT,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode="Markdown"
-    )
-    return AGREEMENT
+    -- Close Button
+    local Close = Instance.new("TextButton")
+    Close.Size = UDim2.fromOffset(28, 28)
+    Close.Position = UDim2.new(1, -36, 0, 7)
+    Close.BackgroundTransparency = 1
+    Close.Text = "✕"
+    Close.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Close.TextSize = 20
+    Close.Font = Enum.Font.Gotham
+    Close.Parent = TitleBar
 
-# ================== APPLY ==================
-async def apply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
+    Close.MouseButton1Click:Connect(function()
+        ScreenGui.Enabled = false
+    end)
 
-    await query.message.reply_text("Ваш ник в Roblox:")
-    return NICK
+    local Window = {
+        Frame = MainFrame,
+        ScreenGui = ScreenGui,
+        Content = nil,
+        ToggleKey = config.ToggleKey or Enum.KeyCode.RightControl
+    }
 
-async def nick(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["nick"] = update.message.text
-    await update.message.reply_text("Ваш Username в Telegram:")
-    return TG
+    -- Создаём область контента
+    local Content = Instance.new("Frame")
+    Content.Size = UDim2.new(1, -20, 1, -62)
+    Content.Position = UDim2.fromOffset(10, 52)
+    Content.BackgroundTransparency = 1
+    Content.Parent = MainFrame
+    Window.Content = Content
 
-async def tg(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["tg"] = update.message.text
+    return Window
+end
 
-    keyboard = [
-        [
-            InlineKeyboardButton("🛡 Охранник", callback_data="role_guard"),
-            InlineKeyboardButton("⚔️ Спецназ", callback_data="role_spec")
-        ]
-    ]
-    await update.message.reply_text("Кто вы?", reply_markup=InlineKeyboardMarkup(keyboard))
-    return ROLE
+function DiscordUI:CreateToggle(parent, config)
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(1, 0, 0, 58)
+    Btn.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
+    Btn.Text = config.Title or "Toggle"
+    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Btn.TextSize = 17
+    Btn.Font = Enum.Font.GothamSemibold
+    Btn.Parent = parent
 
-async def role(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 10)
+    Corner.Parent = Btn
 
-    context.user_data["role"] = "Охранник" if query.data == "role_guard" else "Спецназ"
-    await query.message.reply_text("В чём ваш опыт?")
-    return EXPERIENCE
+    local State = false
 
-async def experience(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["experience"] = update.message.text
-    await update.message.reply_text("Сколько времени вы будете уделять клану?")
-    return TIME
+    local function updateVisual()
+        if State then
+            Btn.BackgroundColor3 = Color3.fromRGB(88, 101, 242) -- Discord blue
+        else
+            Btn.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
+        end
+    end
 
-async def time(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["time"] = update.message.text
-    await update.message.reply_text("Причина, по которой вы хотите вступить в клан?")
-    return REASON
+    Btn.MouseButton1Click:Connect(function()
+        State = not State
+        updateVisual()
+        if config.Callback then
+            config.Callback(State)
+        end
+    end)
 
-async def reason(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["reason"] = update.message.text
+    return {
+        Set = function(self, value)
+            State = value
+            updateVisual()
+            if config.Callback then config.Callback(State) end
+        end
+    }
+end
 
-    text = (
-        "📩 *Новая заявка*\n\n"
-        f"Roblox: {context.user_data['nick']}\n"
-        f"Telegram: {context.user_data['tg']}\n"
-        f"Роль: {context.user_data['role']}\n"
-        f"Опыт: {context.user_data['experience']}\n"
-        f"Время: {context.user_data['time']}\n"
-        f"Причина: {context.user_data['reason']}"
-    )
-
-    keyboard = [
-        [
-            InlineKeyboardButton("✅ Принять", callback_data=f"accept_{update.effective_user.id}"),
-            InlineKeyboardButton("❌ Отклонить", callback_data=f"decline_{update.effective_user.id}")
-        ]
-    ]
-
-    await context.bot.send_message(
-        ADMIN_ID,
-        text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode="Markdown"
-    )
-
-    await update.message.reply_text("✅ Ваша заявка отправлена")
-    return ConversationHandler.END
-
-# ================== SUPPORT ==================
-async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    await query.message.reply_text(
-        "🛠 Поддержка\n\n"
-        "Пожалуйста, напишите ваш вопрос.\n"
-        "Мы ответим вам в ближайшее время 🙂"
-    )
-    return SUPPORT
-
-async def support_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
-
-    msg = await context.bot.send_message(
-        ADMIN_ID,
-        f"📨 Сообщение в поддержку:\n\n{text}"
-    )
-
-    context.bot_data[msg.message_id] = update.effective_user.id
-    await update.message.reply_text("✅ Ваше сообщение отправлено в поддержку")
-    return ConversationHandler.END
-
-async def admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message.reply_to_message:
-        return
-
-    replied_id = update.message.reply_to_message.message_id
-    if replied_id not in context.bot_data:
-        return
-
-    user_id = context.bot_data[replied_id]
-
-    await context.bot.send_message(
-        user_id,
-        f"📩 Ответ от поддержки:\n{update.message.text}"
-    )
-
-# ================== ACCEPT / DECLINE ==================
-async def accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    user_id = int(query.data.split("_")[1])
-
-    await context.bot.send_message(
-        user_id,
-        "🎉 Вас приняли в клан, ожидайте пока вам напишут."
-    )
-    await query.edit_message_text("✅ Заявка принята")
-
-async def decline(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    context.user_data["decline_user"] = int(query.data.split("_")[1])
-    await query.message.reply_text("Напишите причину отклонения:")
-    return DECLINE_REASON
-
-async def decline_reason(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = context.user_data["decline_user"]
-    await context.bot.send_message(
-        user_id,
-        f"❌ К сожалению, вашу заявку отклонили.\nПричина от создателя:\n{update.message.text}"
-    )
-    await update.message.reply_text("❌ Заявка отклонена")
-    return ConversationHandler.END
-
-# ================== MAIN ==================
-def main():
-    app = Application.builder().token(TOKEN).build()
-
-    conv = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
-        states={
-            MENU: [CallbackQueryHandler(apply, pattern="apply"),
-                   CallbackQueryHandler(agreement, pattern="agreement"),
-                   CallbackQueryHandler(support, pattern="support")],
-            AGREEMENT: [CallbackQueryHandler(apply, pattern="agree")],
-            NICK: [MessageHandler(filters.TEXT, nick)],
-            TG: [MessageHandler(filters.TEXT, tg)],
-            ROLE: [CallbackQueryHandler(role)],
-            EXPERIENCE: [MessageHandler(filters.TEXT, experience)],
-            TIME: [MessageHandler(filters.TEXT, time)],
-            REASON: [MessageHandler(filters.TEXT, reason)],
-            SUPPORT: [MessageHandler(filters.TEXT, support_message)],
-            DECLINE_REASON: [MessageHandler(filters.TEXT, decline_reason)]
-        },
-        fallbacks=[]
-    )
-
-    app.add_handler(conv)
-    app.add_handler(CallbackQueryHandler(accept, pattern="accept_"))
-    app.add_handler(CallbackQueryHandler(decline, pattern="decline_"))
-    app.add_handler(MessageHandler(filters.TEXT & filters.REPLY, admin_reply))
-
-    app.run_polling()
-
-if __name__ == "__main__":
-    main()
+return DiscordUI
