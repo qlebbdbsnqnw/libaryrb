@@ -1,10 +1,11 @@
--- Libaryds.lua - Улучшенная Discord/TG Style UI
+-- Libaryds.lua - Красивая Discord/TG Style UI (Исправленная)
 local DiscordUI = {}
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
-local function Tween(obj, props, time, style)
-    style = style or Enum.EasingStyle.Quint
-    TweenService:Create(obj, TweenInfo.new(time or 0.25, style, Enum.EasingDirection.Out), props):Play()
+local function Tween(obj, props, time)
+    time = time or 0.25
+    TweenService:Create(obj, TweenInfo.new(time, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), props):Play()
 end
 
 function DiscordUI:CreateWindow(config)
@@ -12,7 +13,7 @@ function DiscordUI:CreateWindow(config)
     local playerGui = player:WaitForChild("PlayerGui")
     
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = config.Name or "AndroidControlUI"
+    ScreenGui.Name = "AndroidControlUI"
     ScreenGui.ResetOnSpawn = false
     ScreenGui.Parent = playerGui
 
@@ -25,59 +26,61 @@ function DiscordUI:CreateWindow(config)
     MainFrame.BorderSizePixel = 0
     MainFrame.Active = true
     MainFrame.Draggable = true
+    MainFrame.ClipsDescendants = true
     MainFrame.Parent = ScreenGui
 
     local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 14)
+    Corner.CornerRadius = UDim.new(0, 16)
     Corner.Parent = MainFrame
 
     local Stroke = Instance.new("UIStroke")
-    Stroke.Color = Color3.fromRGB(60, 63, 69)
-    Stroke.Thickness = 1.2
-    Stroke.Transparency = 0.5
+    Stroke.Color = Color3.fromRGB(55, 58, 64)
+    Stroke.Thickness = 1.5
+    Stroke.Transparency = 0.4
     Stroke.Parent = MainFrame
 
     -- Title Bar
     local TitleBar = Instance.new("Frame")
-    TitleBar.Size = UDim2.new(1, 0, 0, 46)
+    TitleBar.Size = UDim2.new(1, 0, 0, 48)
     TitleBar.BackgroundColor3 = Color3.fromRGB(26, 27, 30)
     TitleBar.BorderSizePixel = 0
     TitleBar.Parent = MainFrame
 
     local TitleCorner = Instance.new("UICorner")
-    TitleCorner.CornerRadius = UDim.new(0, 14)
+    TitleCorner.CornerRadius = UDim.new(0, 16)
     TitleCorner.Parent = TitleBar
 
     local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1, -100, 1, 0)
+    Title.Size = UDim2.new(1, -110, 1, 0)
     Title.BackgroundTransparency = 1
     Title.Text = config.Title or "Android Control"
-    Title.TextColor3 = Color3.fromRGB(240, 240, 240)
-    Title.TextSize = 17
+    Title.TextColor3 = Color3.fromRGB(245, 245, 245)
+    Title.TextSize = 17.5
     Title.Font = Enum.Font.GothamBold
     Title.TextXAlignment = Enum.TextXAlignment.Left
-    Title.Position = UDim2.fromOffset(18, 0)
+    Title.Position = UDim2.fromOffset(20, 0)
     Title.Parent = TitleBar
 
     -- Close Button
     local Close = Instance.new("TextButton")
-    Close.Size = UDim2.fromOffset(32, 32)
-    Close.Position = UDim2.new(1, -40, 0, 7)
+    Close.Size = UDim2.fromOffset(34, 34)
+    Close.Position = UDim2.new(1, -42, 0, 7)
     Close.BackgroundTransparency = 1
-    Close.Text = "X"
-    Close.TextColor3 = Color3.fromRGB(180, 180, 180)
-    Close.TextSize = 20
+    Close.Text = "✕"
+    Close.TextColor3 = Color3.fromRGB(170, 170, 170)
+    Close.TextSize = 21
     Close.Font = Enum.Font.Gotham
     Close.Parent = TitleBar
 
-    Close.MouseEnter:Connect(function() Tween(Close, {TextColor3 = Color3.fromRGB(255, 80, 80)}) end)
-    Close.MouseLeave:Connect(function() Tween(Close, {TextColor3 = Color3.fromRGB(180, 180, 180)}) end)
+    Close.MouseEnter:Connect(function() Tween(Close, {TextColor3 = Color3.fromRGB(255, 70, 70)}) end)
+    Close.MouseLeave:Connect(function() Tween(Close, {TextColor3 = Color3.fromRGB(170, 170, 170)}) end)
 
-    -- Content Frame
+    -- Content
     local Content = Instance.new("Frame")
-    Content.Size = UDim2.new(1, -24, 1, -66)
-    Content.Position = UDim2.fromOffset(12, 58)
+    Content.Size = UDim2.new(1, -28, 1, -72)
+    Content.Position = UDim2.fromOffset(14, 60)
     Content.BackgroundTransparency = 1
+    Content.ClipsDescendants = true
     Content.Parent = MainFrame
 
     local Window = {
@@ -87,16 +90,16 @@ function DiscordUI:CreateWindow(config)
         ToggleKey = config.ToggleKey or Enum.KeyCode.RightControl
     }
 
-    -- Плавное скрытие окна
+    -- Close Button
     Close.MouseButton1Click:Connect(function()
-        Tween(MainFrame, {Size = UDim2.fromOffset(0, 0)}, 0.3)
-        task.wait(0.3)
+        Tween(MainFrame, {Size = UDim2.fromOffset(0, 0)}, 0.28)
+        task.wait(0.28)
         ScreenGui.Enabled = false
         MainFrame.Size = config.Size or UDim2.fromOffset(460, 380)
     end)
 
-    -- Toggle Key (Right Ctrl)
-    game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
+    -- Toggle Window (Right Ctrl)
+    UserInputService.InputBegan:Connect(function(input, gp)
         if gp then return end
         if input.KeyCode == Window.ToggleKey then
             ScreenGui.Enabled = not ScreenGui.Enabled
@@ -112,9 +115,9 @@ end
 
 function DiscordUI:CreateToggle(parent, config)
     local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(1, 0, 0, 62)
+    Btn.Size = UDim2.new(1, 0, 0, 64)
     Btn.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
-    Btn.Text = config.Title or "Toggle"
+    Btn.Text = config.Title or "START / STOP"
     Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     Btn.TextSize = 17
     Btn.Font = Enum.Font.GothamSemibold
@@ -134,9 +137,9 @@ function DiscordUI:CreateToggle(parent, config)
         end
     end
 
-    -- Hover эффект
+    -- Hover (без расширения)
     Btn.MouseEnter:Connect(function()
-        Tween(Btn, {BackgroundColor3 = State and Color3.fromRGB(100, 110, 255) or Color3.fromRGB(60, 63, 69)}, 0.15)
+        Tween(Btn, {BackgroundColor3 = State and Color3.fromRGB(105, 115, 255) or Color3.fromRGB(60, 63, 69)}, 0.2)
     end)
     Btn.MouseLeave:Connect(function()
         updateVisual()
@@ -145,9 +148,7 @@ function DiscordUI:CreateToggle(parent, config)
     Btn.MouseButton1Click:Connect(function()
         State = not State
         updateVisual()
-        if config.Callback then
-            config.Callback(State)
-        end
+        if config.Callback then config.Callback(State) end
     end)
 
     return {
@@ -155,8 +156,7 @@ function DiscordUI:CreateToggle(parent, config)
             State = value
             updateVisual()
             if config.Callback then config.Callback(State) end
-        end,
-        Button = Btn
+        end
     }
 end
 
